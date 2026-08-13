@@ -2,11 +2,20 @@
 import "dotenv/config";
 import Fastify from "fastify";
 import { chatRoute } from "./routes/chat.js";
-const PORT_NUM:number = Number(process.env.PORT_NUM) || 3000;
+import { checkDBConnection } from "./services/db.js"
 
+
+const PORT_NUM:number = Number(process.env.PORT_NUM) || 3000;
 const fastify = Fastify({
     logger: true
 })
+
+try{
+    await checkDBConnection();
+    fastify.log.info("DB connection established");
+}catch(e) {
+    fastify.log.error("Failed to connect to DB"+e);
+}
 fastify.get('/',(req, res)=>{
     res.send({"message": "AI Backend is running"});
 })
