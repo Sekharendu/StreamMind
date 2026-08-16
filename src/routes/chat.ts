@@ -1,20 +1,23 @@
 import "dotenv/config";
 import {geminiAgent} from '../services/gemini.js'
 import { pool } from "../services/db.js";
+import { redisClient } from "../services/redis.js"
 import type { FastifyRequest, FastifyReply, FastifyInstance, FastifyPluginOptions } from 'fastify';
 
-type ReqType = {
-    Body: {
-        query : string;
-    };
-}
 type GETReqType = {
     Params:{
         id: string;
     }
 }
+type ReqType= GETReqType & {
+    Body: {
+        query : string;
+    };
+}
+
+
 async function chatRoute(fastify: FastifyInstance, options: FastifyPluginOptions){
-    fastify.post<ReqType>('/chat',async (request,reply)=>{
+    fastify.post<ReqType>('/chat/:id',async (request,reply)=>{
         if(!request?.body?.query || request.body.query==null  || typeof(request.body.query)!='string') return reply.send({
                 "response": "please send an appt response using a 'query' as a key"
             })
@@ -40,8 +43,20 @@ async function chatRoute(fastify: FastifyInstance, options: FastifyPluginOptions
             "no"
         );
          try {
-            const chatObj = await pool.query("INSERT INTO chats(title) VALUES($1) RETURNING id" , [request.body.query.slice(0,50)]);
-            var chatId = chatObj.rows[0].id;
+            const paramsObj = request.params;
+            var chatId = paramsObj?.id;
+            //adding a check to make sure users cannot do more than 10 req/min
+            var requestCount = await redisClient.get(chatId) || 0;
+            if(requestCount as unknown as number >= 10){
+                reply.raw.write("You have exceeded the request limit of the minute, please wait for a minute till it gets back [20 req/minute]");
+                reply.raw.end();
+            }
+            requestCount = await redisClient.incr(chatId);
+            if(requestCount ===1 ) await redisClient.expire(chatId, 60);// the key expires after 1 minute
+            if(! (await pool.query("SELECT * FROM chats WHERE id=$1",[chatId]))){
+                const chatObj = await pool.query("INSERT INTO chats(title) VALUES($1) RETURNING id" , [request.body.query.slice(0,50)]);
+                chatId = chatObj.rows[0].id;
+            }
             // save user mssg to db
             await pool.query("INSERT INTO messages(chat_id, role, content) VALUES($1,$2,$3)",[chatId,"user",request.body.query]);
             var gemResponseInChunks=""; 
@@ -54,6 +69,7 @@ async function chatRoute(fastify: FastifyInstance, options: FastifyPluginOptions
                     })}\n\n`
                 );
                 gemResponseInChunks+=chunk as unknown as string;
+            
             }
             //save geminis response to db
             await pool.query("INSERT INTO messages(chat_id, role, content) VALUES($1,$2,$3)", [chatId, "assistant", gemResponseInChunks]);
