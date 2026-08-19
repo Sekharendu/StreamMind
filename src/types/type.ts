@@ -4,6 +4,9 @@ type GETReqType = {
     }
 }
 type ReqType= GETReqType & {
+    Header: {
+        "x-tenant-id": string
+    }
     Body: {
         query : string;
     };
@@ -11,6 +14,8 @@ type ReqType= GETReqType & {
 
 type RequestContext ={
     chatId: string,
-    requestId: string
+    requestId: string,
+    tenantId: string
+    startTime?: number
 }
 export type {GETReqType, ReqType,RequestContext}

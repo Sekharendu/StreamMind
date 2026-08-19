@@ -8,7 +8,7 @@ import { checkDBConnection } from "./services/db.js"
 const PORT_NUM:number = Number(process.env.PORT_NUM) || 3000;
 const fastify = Fastify({
     logger: true
-})
+})// BY deafault the logger remains false, we gotta enable it first to use it
 
 try{
     await checkDBConnection();
