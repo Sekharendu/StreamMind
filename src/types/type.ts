@@ -18,4 +18,18 @@ type RequestContext ={
     tenantId: string
     startTime?: number
 }
-export type {GETReqType, ReqType,RequestContext}
+
+type Telemetry={
+    chatId: string,
+    requestId: string,
+    tenantId: string,
+
+    model: string,
+
+    latencyMs: number,
+    inputToken: number;
+    outputToken:number,
+
+    cost:number
+}
+export type {GETReqType, ReqType, RequestContext, Telemetry}

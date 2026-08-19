@@ -6,6 +6,7 @@ import type { FastifyRequest, FastifyReply, FastifyInstance, FastifyPluginOption
 import { asyncLocalStorage } from '../services/context.js';
 import { randomUUID } from "node:crypto";
 import type {GETReqType, ReqType,RequestContext} from "../types/type.js"
+import {info} from "../services/logger.js"
 
 async function chatRoute(fastify: FastifyInstance, options: FastifyPluginOptions){
     fastify.post<ReqType>('/chat/:id',async (request,reply)=>{
@@ -44,18 +45,19 @@ async function chatRoute(fastify: FastifyInstance, options: FastifyPluginOptions
         const requestId = randomUUID();
         const startTime = Date.now();
         const requestContext: RequestContext = { chatId, requestId, tenantId, startTime};
-        
+
         await asyncLocalStorage.run(requestContext,async()=>{
             try{
-                fastify.log.info(`1. request started ${requestContext.requestId}, ${requestContext.chatId} , ${requestContext.tenantId}`);
+                info("1. request started");
                 //REDIS -> adding a check to make sure users cannot do more than 20 req/min
                 var requestCount = await redisClient.get(chatId) || 0;
                 if(requestCount as unknown as number >= 10){
-                    return reply.raw.write("You have exceeded the request limit of the minute, please wait for a minute till it gets back [20 req/minute]");
+                    reply.raw.write("You have exceeded the request limit of the minute, please wait for a minute till it gets back [20 req/minute]");
+                    return reply.raw.end();
                 }
                 requestCount = await redisClient.incr(chatId);
                 if(requestCount ===1 ) await redisClient.expire(chatId, 60);// the key expires after 1 minute
-                fastify.log.info(`2. redis updated ${requestContext.requestId}, ${requestContext.chatId} , ${requestContext.tenantId}`);
+                info("2. redis updated");
                 const dbExist = await pool.query("SELECT * FROM chats WHERE id=$1",[chatId])
                 if(dbExist.rows.length == 0){
                     const chatObj = await pool.query("INSERT INTO chats(title) VALUES($1) RETURNING id" , [request.body.query.slice(0,50)]);
@@ -67,7 +69,7 @@ async function chatRoute(fastify: FastifyInstance, options: FastifyPluginOptions
                 // SAVE USER MSSG TO DB
                 await pool.query("INSERT INTO messages(chat_id, role, content) VALUES($1,$2,$3)",[chatId,"user",request.body.query]);
                 var gemResponseInChunks=""; 
-                fastify.log.info(`3. DB updated with user req ${requestContext.requestId}, ${requestContext.chatId} , ${requestContext.tenantId}`);
+                info("3. DB updated with user req ");
 
 
                 //SENDING REQUEST TO GEMINI
@@ -84,8 +86,7 @@ async function chatRoute(fastify: FastifyInstance, options: FastifyPluginOptions
 
                 //save geminis response to db
                 await pool.query("INSERT INTO messages(chat_id, role, content) VALUES($1,$2,$3)", [chatId, "assistant", gemResponseInChunks]);
-                fastify.log.info(`6. DB updated with GEM response ${requestContext.requestId}, ${requestContext.chatId} , ${requestContext.tenantId}`);
-                
+                info("6. DB updated with GEM response ");
                 // Tell client generation completed
                 reply.raw.write(
                     `event: done\n` +
@@ -93,7 +94,8 @@ async function chatRoute(fastify: FastifyInstance, options: FastifyPluginOptions
                         success: true,
                     })}\n\n`
                 );
-                fastify.log.info(`7. req ended ${requestContext.requestId}, ${requestContext.chatId} , ${requestContext.tenantId}`);
+                info("7. req ended");
+                const reqEndTime = Date.now();
 
             } catch (error) {
                 fastify.log.error(error);
