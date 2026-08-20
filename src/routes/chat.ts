@@ -7,6 +7,7 @@ import { asyncLocalStorage } from '../services/context.js';
 import { randomUUID } from "node:crypto";
 import type {GETReqType, ReqType,RequestContext} from "../types/type.js"
 import {info} from "../services/logger.js"
+import {  generateResponse } from "../services/llmProviders.js"
 
 async function chatRoute(fastify: FastifyInstance, options: FastifyPluginOptions){
     fastify.post<ReqType>('/chat/:id',async (request,reply)=>{
@@ -45,6 +46,7 @@ async function chatRoute(fastify: FastifyInstance, options: FastifyPluginOptions
         const requestId = randomUUID();
         const startTime = Date.now();
         const requestContext: RequestContext = { chatId, requestId, tenantId, startTime};
+        const LLMPROVIDER:string = request.body?.llmProvider || " " ;
 
         await asyncLocalStorage.run(requestContext,async()=>{
             try{
@@ -73,7 +75,7 @@ async function chatRoute(fastify: FastifyInstance, options: FastifyPluginOptions
 
 
                 //SENDING REQUEST TO GEMINI
-                for await (const chunk of geminiAgent(request.body.query)) {
+                for await (const chunk of generateResponse(LLMPROVIDER, request.body.query)) {
                     //chunk = only the text message like, chunk = "Hi!! i am good"
                     reply.raw.write(
                         `event: chunk\n` +
