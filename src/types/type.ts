@@ -24,12 +24,14 @@ type Telemetry={
     requestId: string,
     tenantId: string,
 
+    provider?: string,
     model: string,
 
     latencyMs: number,
-    inputToken: number;
-    outputToken:number,
+    inputToken?: number;
+    outputToken?:number,
+    totalToken?: number,
 
-    cost:number
+    cost?:number
 }
 export type {GETReqType, ReqType, RequestContext, Telemetry}
