@@ -40,7 +40,7 @@ async function withRetry<T>(fn:()=>Promise<T>, provider:string){
             if(isRetryable(error) && i < MAX_ATTEMPTS){
                 const message = error instanceof Error ? error.message : String(error);
                 info(`${provider} failed to generate response ${i}/${MAX_ATTEMPTS} attempts, Reason: ${message}, retrying in ${DELAY / 1000}s....`);//Printing the log
-                await new Promise(r=>setTimeout(r,DELAY*i));// r is nothing, this is just used to pause the execition for DELAY ms
+                await new Promise(r=>setTimeout(r,2*i*DELAY));// r is nothing, this is just used to pause the execition for DELAY ms
             }else{
                 console.log('___NETWORK ERROR____',error);
                 throw error;

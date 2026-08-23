@@ -7,12 +7,13 @@ import {withRetry} from "./retry.js"
 const GOOGLE_API_KEY:string = process.env.GOOGLE_API_KEY || "";
 const ai = new GoogleGenAI({apiKey: GOOGLE_API_KEY});
 const MODEL= "gemini-3.5-flash-lite";
-let totalTokenCount:number =0 ;
-let outputTokenCount:number = 0;
-let inputTokenCount:number = 0;
+
 async function* geminiAgent(query: string ):AsyncGenerator<string>{// used AsyncGenertor cause if i had used Promise then it would have waited for the response to complete, 
     // but asynGenerator lets send resposnse in a live-time stream.
 
+    let totalTokenCount:number =0 ;
+    let outputTokenCount:number = 0;
+    let inputTokenCount:number = 0;
     const {requestId, chatId, tenantId} = getLocalStorage();
     info("Gemini response started");
     const startTime = Date.now();
