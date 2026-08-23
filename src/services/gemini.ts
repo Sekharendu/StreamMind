@@ -1,7 +1,8 @@
-import {GoogleGenAI} from '@google/genai';
+import {ApiError, GoogleGenAI} from '@google/genai';
 import type { RequestContext, Telemetry} from "../types/type.js"
 import { getLocalStorage } from '../services/context.js';
 import {info} from "./logger.js";
+import {withRetry} from "./retry.js"
 
 const GOOGLE_API_KEY:string = process.env.GOOGLE_API_KEY || "";
 const ai = new GoogleGenAI({apiKey: GOOGLE_API_KEY});
@@ -18,10 +19,14 @@ async function* geminiAgent(query: string ):AsyncGenerator<string>{// used Async
     if(!GOOGLE_API_KEY){
         throw("API key not configured");
     }
-    const response = await ai.models.generateContentStream({
+    
+    const response = await withRetry(()=> ai.models.generateContentStream({
         model: MODEL,
         contents: query
-    })
+    }), 'gemini');
+    // if (!response) {
+    //     throw new Error("Gemini response was undefined");
+    // }
     // console.log('---gem response---', response);
     for await(const chunk of response){
         // info('----gemini response----');
@@ -56,6 +61,7 @@ async function* geminiAgent(query: string ):AsyncGenerator<string>{// used Async
     info("Gemini response ended");
 
     console.log('--Telemetry Data--',telemetryData);
+
 }
 
 export {geminiAgent};

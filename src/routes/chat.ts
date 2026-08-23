@@ -74,7 +74,7 @@ async function chatRoute(fastify: FastifyInstance, options: FastifyPluginOptions
                 info("3. DB updated with user req ");
 
 
-                //SENDING REQUEST TO GEMINI
+                //SENDING REQUEST TO LLM PROVIDER
                 for await (const chunk of generateResponse(LLMPROVIDER, request.body.query)) {
                     //chunk = only the text message like, chunk = "Hi!! i am good"
                     reply.raw.write(
