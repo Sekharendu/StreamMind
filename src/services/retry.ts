@@ -2,7 +2,6 @@ import { ApiError } from "@google/genai";
 import { APIError } from "groq-sdk"
 import { info } from "./logger.js"
 
-
 function isRetryable(error: unknown):boolean{
     if (error instanceof ApiError || error instanceof APIError) {
         return error.status === 500 || error.status === 503 || error.status === 429;
