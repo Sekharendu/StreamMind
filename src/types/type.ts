@@ -35,4 +35,13 @@ type Telemetry={
 
     cost?:number
 }
+
+type ChunkType = {
+    documentId: string,
+    chunkId: string,
+    source: string,
+    content: string,
+    chunkIndex?: number,
+    totalChunks?: number
+}
 export type {GETReqType, ReqType, RequestContext, Telemetry}

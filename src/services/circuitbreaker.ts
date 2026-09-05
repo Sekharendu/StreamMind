@@ -1,10 +1,8 @@
 import { info } from "./logger.js";
 
 type BreakerState = "CLOSED" | "OPEN" | "HALF_OPEN";
-// type LLMProviders = "gemini" | "groq";
 
 export class CircuitBreaker {
-  // FIELDS — every breaker instance carries these five:
   private state: BreakerState
   private failures: number
   private lastFailureTime: number | null
@@ -13,14 +11,12 @@ export class CircuitBreaker {
   private provider: string;
 
   constructor(providerName: string, threshold: number, timeoutMs: number) {
-    // set every field's starting value here.
     this.threshold= threshold;
     this.timeoutMs = timeoutMs;
     this.lastFailureTime = 0;
     this.failures = 0;
     this.state = "CLOSED";
     this.provider = providerName;
-        // Q1: what state does a fresh breaker start in? what's the failure count?
   }
 
   canRequest(): boolean {
