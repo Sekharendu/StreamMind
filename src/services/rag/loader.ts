@@ -10,6 +10,7 @@ export async function loadDocument(documentPath: string): Promise<Record<string,
         try{
             const documentId = randomUUID();
             const rawContents = await readFile(documentPath,"utf-8");
+            console.log("inside loader");
             return {documentId, rawContents};
             // const cleanUpContent = cleanUpRawString(rawContents);
             // splitIntoChunks(cleanUpContent);
@@ -17,5 +18,5 @@ export async function loadDocument(documentPath: string): Promise<Record<string,
 
         }
     }else throw Error;
-    return {"",""};
+    return {"fewgre","rebtn"};
 }

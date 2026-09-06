@@ -37,11 +37,11 @@ type Telemetry={
 }
 
 type ChunkType = {
-    documentId: string,
-    chunkId: string,
-    source: string,
-    content: string,
-    chunkIndex?: number,
-    totalChunks?: number
+    pageContent: string,
+    metadata: {
+        chunkIndex: number,
+        chunkId: string,
+        source: string,
+    }
 }
-export type {GETReqType, ReqType, RequestContext, Telemetry}
+export type {GETReqType, ReqType, RequestContext, Telemetry, ChunkType}
