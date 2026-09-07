@@ -1,22 +1,30 @@
 import { readFile } from "node:fs/promises";
 import { extname } from "node:path";
-import { splitIntoChunks } from "./chunker.js";
-import {cleanUpRawString} from "./cleaner.js"
 import { randomUUID } from "node:crypto";
 
-export async function loadDocument(documentPath: string): Promise<Record<string, string>>{
-    const extName = extname(documentPath);
-    if(extName === ".txt" || extName === ".md"){
-        try{
-            const documentId = randomUUID();
-            const rawContents = await readFile(documentPath,"utf-8");
-            console.log("inside loader");
-            return {documentId, rawContents};
-            // const cleanUpContent = cleanUpRawString(rawContents);
-            // splitIntoChunks(cleanUpContent);
-        }catch(e){
+type LoadedDocument = {
+    documentId: string;
+    source: string;
+    rawContents: string;
+}
 
-        }
-    }else throw Error;
-    return {"fewgre","rebtn"};
+export async function loadDocument(documentPath: string): Promise<LoadedDocument>{
+    const extension = extname(documentPath).toLowerCase();
+
+    if (extension !== ".txt" && extension !== ".md") {
+        throw new Error(`Unsupported document type: ${extension || "none"}`);
+    }
+
+    try {
+        const rawContents = await readFile(documentPath, "utf-8");
+
+        return {
+            documentId: randomUUID(),
+            source: documentPath,
+            rawContents,
+        };
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Failed to load document "${documentPath}": ${message}`);
+    }
 }

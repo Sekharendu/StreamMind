@@ -41,7 +41,8 @@ type ChunkType = {
     metadata: {
         chunkIndex: number,
         chunkId: string,
+        documentId: string,
         source: string,
-    }
+        }
 }
 export type {GETReqType, ReqType, RequestContext, Telemetry, ChunkType}
