@@ -4,6 +4,8 @@ import { cleanUpRawString } from "./cleaner.js";
 import { loadDocument } from "./loader.js";
 import { GoogleGenAI, TrafficType } from "@google/genai";
 import "dotenv/config";
+import {insertChunks} from "./vectorStore.js"
+
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || "";
 const ai = new GoogleGenAI({apiKey: GOOGLE_API_KEY});
 
@@ -33,6 +35,7 @@ async function executeBatch(batchOfChuks: string[]): Promise<Embedding[]>{
         throw new Error("Embedding generation failed", {
         cause: error
     });
+    }
 }
 
 async function execute(): Promise<void> {
@@ -51,7 +54,7 @@ async function execute(): Promise<void> {
             console.log(`Chunk ${chunk.metadata.chunkIndex}: ${chunk.pageContent.slice(0, 120)}`);
         }
         // console.log('chunks', chunks);
-
+    const newArr: number[][] = [];
         for(let i=0; i<chunks.length; i+=4){
             // console.log("ABout to send 1st chunk");
             const end = i+4<chunks.length?i+4:chunks.length;
@@ -59,15 +62,19 @@ async function execute(): Promise<void> {
             const pageContent = batchOfChuks.map((chunks)=>chunks.pageContent);
             // console.log(`chunks counter ${i},---${chunksArr}`);
             const valuesList = await executeBatch(pageContent);
-            const newArr= [];
+            
             for (const val of valuesList){
-                newArr.push(val.values);
+                if (val.values) {
+                    newArr.push(val.values);
+                }
             }
             for(const val of newArr){
                 console.log(`---val----${val}`);
             }
             
         }
+        if (newArr.length) await insertChunks(chunks, newArr);
+
     }catch(e){
         throw (e);
     }
