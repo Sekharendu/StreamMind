@@ -1,7 +1,6 @@
 import "dotenv/config";
 import {GoogleGenAI} from "@google/genai";
-const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || "";
-const ai = new GoogleGenAI({apiKey: GOOGLE_API_KEY});
+import {ai} from "../gemini.js";
 
 type Embedding={
     values?: number[]
@@ -10,9 +9,6 @@ type Embedding={
 //returns vector 
 export async function executeBatch(batchOfChuks: string[] | string): Promise<Embedding[]>{
     console.log("Chuks received", batchOfChuks);
-    if(!GOOGLE_API_KEY){
-        throw("API key not configured correctly");
-    }
     try{
         const response = await ai.models.embedContent({
             model: 'gemini-embedding-001',

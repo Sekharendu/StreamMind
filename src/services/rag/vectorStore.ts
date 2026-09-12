@@ -13,3 +13,20 @@ export async function insertChunks(chunks: ChunkType[], vectors: number[][]){
             [chunk?.metadata.chunkId, chunk?.metadata.documentId, chunk?.metadata.source, chunk?.metadata.chunkIndex, chunk?.pageContent, vectorLiteral]);
     }
 }
+
+type RetrievedChuks = {
+    chunk_content: string,
+    distance : number
+}
+
+
+export async function searchSimilar(queryVector: number[], topK: number): Promise<RetrievedChuks[]>{
+    const vectorLiteral = `[${queryVector.join(",")}]`;
+    const chunks = await pool.query("SELECT chunk_id,document_id, source, chunk_index, content, embedding <=> $1 AS distance FROM document_chunks ORDER BY distance ASC LIMIT $2;",[vectorLiteral,topK]);
+    const retrievedChunks: RetrievedChuks[] =[];
+    for(const row of chunks.rows){
+        retrievedChunks.push(row.content, row.distance);
+    }
+    return retrievedChunks;
+}
+

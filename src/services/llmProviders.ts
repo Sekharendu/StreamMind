@@ -2,10 +2,10 @@ import { defaultMaxListeners } from "node:events";
 import { geminiAgent } from "./gemini.js";
 import { groqAgent } from "./groq.js"
 
-async function* generateResponse(model: string, query:string){
+async function* generateResponse(model: string, query:string, systemInstruction?: string){
     switch (model){
         case "gemini": 
-            for await (const chunk of geminiAgent(query)){
+            for await (const chunk of geminiAgent(query, systemInstruction)){
                 yield chunk;
             }
             return; 

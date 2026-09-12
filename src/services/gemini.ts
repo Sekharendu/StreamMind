@@ -3,12 +3,14 @@ import type { RequestContext, Telemetry} from "../types/type.js"
 import { getLocalStorage } from '../services/context.js';
 import {info} from "./logger.js";
 import {withRetry} from "./retry.js"
+import "dotenv/config";
+
 
 const GOOGLE_API_KEY:string = process.env.GOOGLE_API_KEY || "";
 const ai = new GoogleGenAI({apiKey: GOOGLE_API_KEY});
-const MODEL= "gemini-3.5-flash-lite";
+const MODEL= process.env.GEMINI_MODEL || "";
 
-async function* geminiAgent(query: string ):AsyncGenerator<string>{// used AsyncGenertor cause if i had used Promise then it would have waited for the response to complete, 
+async function* geminiAgent(query: string, systemInstructions?:string ):AsyncGenerator<string>{// used AsyncGenertor cause if i had used Promise then it would have waited for the response to complete, 
     // but asynGenerator lets send resposnse in a live-time stream.
 
     let totalTokenCount:number =0 ;
@@ -17,13 +19,16 @@ async function* geminiAgent(query: string ):AsyncGenerator<string>{// used Async
     const {requestId, chatId, tenantId} = getLocalStorage();
     info("Gemini response started");
     const startTime = Date.now();
-    if(!GOOGLE_API_KEY){
-        throw("API key not configured");
+    if(!GOOGLE_API_KEY || !MODEL){
+        throw("Please check creadentials in env: API KEY, Model");
     }
     
     const response = await withRetry(()=> ai.models.generateContentStream({
         model: MODEL,
-        contents: query
+        contents: query,
+        config:{
+            ...(systemInstructions !== undefined ? {systemInstruction: systemInstructions} : {})
+        }
     }), 'gemini');
     // if (!response) {
     //     throw new Error("Gemini response was undefined");
@@ -65,4 +70,4 @@ async function* geminiAgent(query: string ):AsyncGenerator<string>{// used Async
 
 }
 
-export {geminiAgent};
+export {geminiAgent, ai};

@@ -7,7 +7,8 @@ import { asyncLocalStorage } from '../services/context.js';
 import { randomUUID } from "node:crypto";
 import type {GETReqType, ReqType,RequestContext} from "../types/type.js"
 import {info} from "../services/logger.js"
-import {  generateResponse } from "../services/llmProviders.js"
+import {  generateResponse } from "../services/llmProviders.js";
+import {searchQuery} from "../services/rag/retriever.js"
 
 async function chatRoute(fastify: FastifyInstance, options: FastifyPluginOptions){
     fastify.post<ReqType>('/chat/:id',async (request,reply)=>{
@@ -75,7 +76,7 @@ async function chatRoute(fastify: FastifyInstance, options: FastifyPluginOptions
 
 
                 //SENDING REQUEST TO LLM PROVIDER
-                for await (const chunk of generateResponse(LLMPROVIDER, request.body.query)) {
+                for await (const chunk of generateResponse(LLMPROVIDER, request.body.query, "")) {
                     //chunk = only the text message like, chunk = "Hi!! i am good"
                     reply.raw.write(
                         `event: chunk\n` +
@@ -126,6 +127,54 @@ async function chatRoute(fastify: FastifyInstance, options: FastifyPluginOptions
         const chatId = String(paramsObj?.id);
         const userQuery = await pool.query("SELECT * FROM messages WHERE chat_id = $1", [chatId]);
         reply.send(userQuery.rows);
+    })
+
+    fastify.post<ReqType>('/rag/query', async (request, reply)=>{
+        if(!request?.body?.query || request.body.query==null  || typeof(request.body.query)!='string') 
+            return reply.send({
+                "response": "please send an appt response using a 'query' as a key"
+            })
+        const tenantId = String(request.headers["x-tenant-id"]|| "");
+
+        if(!tenantId) return reply.status(400).send({error: "Please add a proper tenant-id to the header"});
+
+        // SSE headers
+        reply.raw.setHeader(
+            "Content-Type",
+            "text/event-stream; charset=utf-8"
+        );
+
+        reply.raw.setHeader(
+            "Cache-Control",
+            "no-cache"
+        );
+
+        reply.raw.setHeader(
+            "Connection",
+            "keep-alive"
+        );
+
+        // Tell proxies that we're streaming
+        reply.raw.setHeader(
+            "X-Accel-Buffering",
+            "no"
+        );
+        const query = request.body?.query;
+        for await (const chunk of searchQuery(query)){
+            var gemResponseInChunks="";
+            //SENDING REQUEST TO LLM PROVIDER
+            for await (const chunk of generateResponse(LLMPROVIDER, request.body.query, "")) {
+                //chunk = only the text message like, chunk = "Hi!! i am good"
+                reply.raw.write(
+                    `event: chunk\n` +
+                    `data: ${JSON.stringify({
+                        text: chunk,
+                    })}\n\n`
+                );
+                gemResponseInChunks+=chunk as unknown as string;
+            }
+        }
+
     })
     return;
 }
