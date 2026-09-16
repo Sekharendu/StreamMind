@@ -5,6 +5,7 @@ import { searchSimilar} from "./vectorStore.js"
 import { executeBatch } from "./embedder.js"
 import "dotenv/config";
 import { generateResponse } from "../llmProviders.js"
+import { getLocalStorage } from "../context.js";
 
 const MODEL= process.env.GEMINI_MODEL || "";
 
@@ -23,7 +24,7 @@ export async function *searchQuery(query:string){
     // const vectorLiteral = `[${queryVector.join(",")}]`;
     // const chunks = await pool.query("SELECT chunk_id,document_id, source, chunk_index, content, embedding <=> $1 AS distance FROM document_chunks ORDER BY distance ASC LIMIT $2;",[vectorLiteral,3]);
     const chunks = await searchSimilar(queryVector, 3);
-    console.log("--here is the returned chunk---", chunks);
+    // console.log("--here is the returned chunk---", chunks);
     
     let contextBlock ='';
     chunks.map((chunk)=>{

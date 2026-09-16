@@ -55,4 +55,4 @@ async function execute(): Promise<void> {
         throw (e);
     }
 }
-await execute();
+// await execute();

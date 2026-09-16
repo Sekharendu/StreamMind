@@ -8,7 +8,12 @@ import { randomUUID } from "node:crypto";
 import type {GETReqType, ReqType,RequestContext} from "../types/type.js"
 import {info} from "../services/logger.js"
 import {  generateResponse } from "../services/llmProviders.js";
-import {searchQuery} from "../services/rag/retriever.js"
+import {searchQuery} from "../services/rag/retriever.js";
+import { splitIntoChunks } from "../services/rag/chunker.js";
+import { cleanUpRawString } from "../services/rag/cleaner.js";
+import { loadDocument } from "../services/rag/loader.js";
+import { executeBatch } from "../services/rag/embedder.js";
+import {insertChunks, searchSimilar} from "../services/rag/vectorStore.js"
 
 async function chatRoute(fastify: FastifyInstance, options: FastifyPluginOptions){
     fastify.post<ReqType>('/chat/:id',async (request,reply)=>{
@@ -129,6 +134,63 @@ async function chatRoute(fastify: FastifyInstance, options: FastifyPluginOptions
         reply.send(userQuery.rows);
     })
 
+    fastify.post<ReqType>('/rag/upload', async (request, reply)=>{
+       if(!request?.body?.documentPath){
+        return reply.send("Please add a path to you document");
+       }
+       try{
+            const tenantId = String(request?.headers["x-tenant-id"] || "");
+                if(!tenantId) {
+                return reply.status(400).send({
+                    error: "Please add a proper tenant-id to the header"
+                });
+            }
+        const paramsObj = request.params;
+        var chatId = paramsObj?.id;
+        const requestId = randomUUID();
+        const startTime = Date.now();
+        const requestContext: RequestContext = { chatId, requestId, tenantId, startTime};
+        await asyncLocalStorage.run(requestContext,async()=>{
+            const source = request.body.documentPath || "";
+            const document = await loadDocument(source);
+            const raw = cleanUpRawString(document.rawContents);
+            const chunks = await splitIntoChunks(raw, document.source, document.documentId);
+
+            // console.log(`Document: ${document.source}`);
+            // console.log(`Raw characters: ${document.rawContents.length}`);
+            // console.log(`Clean characters: ${raw.length}`);
+            // console.log(`Chunks: ${chunks.length}`);
+
+            // for (const chunk of chunks) {
+            //     console.log(`Chunk ${chunk.metadata.chunkIndex}: ${chunk.pageContent.slice(0, 120)}`);
+            // }
+            // console.log('chunks', chunks);
+            const newArr: number[][] = [];
+            for(let i=0; i<chunks.length; i+=4){
+                // console.log("ABout to send 1st chunk");
+                const end = i+4<chunks.length?i+4:chunks.length;
+                const batchOfChuks = chunks.slice(i,end);
+                const pageContent = batchOfChuks.map((chunks)=>chunks.pageContent);
+                // console.log(`chunks counter ${i},---${chunksArr}`);
+                const valuesList = await executeBatch(pageContent);
+                
+                for (const val of valuesList){
+                    if (val.values) {
+                        newArr.push(val.values);
+                    }
+                }
+                // for(const val of newArr){
+                //     console.log(`---val----${val}`);
+                // }
+            }
+            if (newArr.length) await insertChunks(chunks, newArr);
+            reply.send("Chunks successfully embedded");
+        });
+        }catch(e){
+            throw (e);
+        }
+    })
+
     fastify.post<ReqType>('/rag/query', async (request, reply)=>{
         if(!request?.body?.query || request.body.query==null  || typeof(request.body.query)!='string') 
             return reply.send({
@@ -182,5 +244,6 @@ async function chatRoute(fastify: FastifyInstance, options: FastifyPluginOptions
         reply.raw.end();
         return;
     })
+
 }
 export {chatRoute};

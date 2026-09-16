@@ -15,13 +15,13 @@ export async function executeBatch(batchOfChuks: string[] | string): Promise<Emb
             contents: batchOfChuks,
             config: { outputDimensionality: 768 },
         });
-        console.log("----Embedding of gemini call is:----", response);
+        // console.log("----Embedding of gemini call is:----", response);
         const embeddingLength = response?.embeddings?.[0]?.values?.length;
         console.log(`Length of embedding: ${embeddingLength}`);
         if(!response.embeddings){
             throw new Error("no embeddings found");
         }
-        console.log('---successfull execute batch---');
+        // console.log('---successfull execute batch---');
         return response.embeddings;
     }catch(error){
         throw new Error("Embedding generation failed", {

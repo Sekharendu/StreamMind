@@ -1,6 +1,8 @@
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { randomUUID } from "node:crypto";
 import type { ChunkType } from "../../types/type.js"
+import { asyncLocalStorage } from "../context.js";
+import { getLocalStorage } from '../context.js';
 
 // const splitter = new RecursiveCharacterTextSplitter({ chunkSize: 100, chunkOverlap: 0 })
 // const texts = splitter.splitText(document)
@@ -30,10 +32,12 @@ export function makeDocs(
     source: string,
     documentId: string,
 ): ChunkType[]{
+    const {tenantId} = getLocalStorage();
     return chunksList.map((chunks, index)=>{
         return {
             pageContent: chunks,
-            metadata: {
+            metadata: { 
+                tenantId: tenantId,
                 chunkId: randomUUID(),
                 chunkIndex: index,
                 documentId,

@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS messages(
 );
 
 CREATE TABLE IF NOT EXISTS document_chunks(
+    tenant_id TEXT NOT NULL,
     chunk_id UUID PRIMARY KEY,
     document_id TEXT NOT NULL,
     source TEXT NOT NULL,

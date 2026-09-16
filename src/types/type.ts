@@ -9,7 +9,8 @@ type ReqType= GETReqType & {
     }
     Body: {
         query : string;
-        llmProvider?: string
+        llmProvider?: string,
+        documentPath?: string
     };
 }
 
