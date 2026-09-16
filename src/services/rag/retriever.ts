@@ -23,12 +23,13 @@ export async function *searchQuery(query:string){
     // const vectorLiteral = `[${queryVector.join(",")}]`;
     // const chunks = await pool.query("SELECT chunk_id,document_id, source, chunk_index, content, embedding <=> $1 AS distance FROM document_chunks ORDER BY distance ASC LIMIT $2;",[vectorLiteral,3]);
     const chunks = await searchSimilar(queryVector, 3);
-    // console.log("--here is the returned chunk---", chunks);
-
+    console.log("--here is the returned chunk---", chunks);
+    
     let contextBlock ='';
     chunks.map((chunk)=>{
         contextBlock+=chunk.chunk_content;
     })
+    console.log(`---context chunk is ${contextBlock}`);
      const systemInstruction = `
     You are an expert scheduling and appointment assistant. 
     Your job is to draft an appropriate appointment-related response based ONLY on the provided reference context chunks and the user's query.
@@ -43,8 +44,10 @@ export async function *searchQuery(query:string){
   `;
   var gemResponseInChunks= "";
     for await (const chunk of generateResponse("gemini", query, systemInstruction)) {
+        console.log(`came here also ------- ${chunk}`);
         yield chunk;
     }
+    return;
                    
 }
 // await searchQuery();

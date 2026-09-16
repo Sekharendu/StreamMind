@@ -160,22 +160,27 @@ async function chatRoute(fastify: FastifyInstance, options: FastifyPluginOptions
             "no"
         );
         const query = request.body?.query;
-        for await (const chunk of searchQuery(query)){
-            var gemResponseInChunks="";
-            //SENDING REQUEST TO LLM PROVIDER
-            for await (const chunk of generateResponse(LLMPROVIDER, request.body.query, "")) {
-                //chunk = only the text message like, chunk = "Hi!! i am good"
+        const requestId = randomUUID();
+        const requestContext: RequestContext = {
+            chatId: requestId,
+            requestId,
+            tenantId,
+            startTime: Date.now()
+        };
+
+        await asyncLocalStorage.run(requestContext, async () => {
+            for await (const chunk of searchQuery(query)){
+                console.log(`--chunk arrived---`);
                 reply.raw.write(
                     `event: chunk\n` +
                     `data: ${JSON.stringify({
                         text: chunk,
                     })}\n\n`
                 );
-                gemResponseInChunks+=chunk as unknown as string;
             }
-        }
-
+        });
+        reply.raw.end();
+        return;
     })
-    return;
 }
 export {chatRoute};

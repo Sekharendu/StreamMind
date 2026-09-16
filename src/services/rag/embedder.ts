@@ -21,6 +21,7 @@ export async function executeBatch(batchOfChuks: string[] | string): Promise<Emb
         if(!response.embeddings){
             throw new Error("no embeddings found");
         }
+        console.log('---successfull execute batch---');
         return response.embeddings;
     }catch(error){
         throw new Error("Embedding generation failed", {
